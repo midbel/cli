@@ -9,7 +9,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+type Time struct {
+	time.Time
+}
+
+func (t *Time) String() string {
+	return t.Time.String()
+}
+
+func (t *Time) Set(v string) error {
+	if v == "" {
+		t.Time = time.Now()
+		return nil
+	}
+	i, err := time.Parse(time.RFC3339, v)
+	if err != nil {
+		return err
+	}
+	t.Time = i
+	return nil
+}
 
 type Certificate struct {
 	Cert *x509.Certificate
