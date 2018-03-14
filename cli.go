@@ -8,6 +8,52 @@ import (
 	"strings"
 )
 
+type Size float64
+
+func (s *Size) Float() float64 {
+	return float64(*s)
+}
+
+func (s *Size) Int() int64 {
+	return int64(*s)
+}
+
+func (s *Size) String() string {
+	return fmt.Sprint(*s)
+}
+
+func (s *Size) Set(v string) error {
+	var (
+		f float64
+		u string
+	)
+	n, err := fmt.Sscanf(v, "%f%s", &f, &u)
+	if err != nil && n == 0 {
+		return err
+	}
+	switch u {
+	case "", "B":
+	case "b":
+		f /= 8
+	case "KB", "K":
+		f *= 1024
+	case "Kb":
+		f *= 1024 / 8
+	case "MB", "M":
+		f *= 1024 * 1024
+	case "Mb":
+		f *= (1024 * 1024) / 8
+	case "GB", "G":
+		f *= 1024 * 1024 * 1024
+	case "Gb":
+		f *= (1024 * 1024 * 1024) / 8
+	default:
+		return fmt.Errorf("unknown unit given %s", u)
+	}
+	*s = Size(f)
+	return nil
+}
+
 func IsDaemon() bool {
 	if os.Getppid() != 1 {
 		return false
