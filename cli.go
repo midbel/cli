@@ -1,12 +1,37 @@
 package cli
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+type Certificate struct {
+	Cert *x509.Certificate
+}
+
+func (c *Certificate) String() string {
+	return fmt.Sprint(*c)
+}
+
+func (c *Certificate) Set(v string) error {
+	bs, err := ioutil.ReadFile(v)
+	if err != nil {
+		return err
+	}
+	b, _ := pem.Decode(bs)
+	cert, err := x509.ParseCertificate(b.Bytes)
+	if err != nil {
+		return err
+	}
+	c.Cert = cert
+	return nil
+}
 
 type Size float64
 
