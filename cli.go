@@ -84,16 +84,16 @@ func (s *Size) Set(v string) error {
 		f /= 8
 	case "KB", "K":
 		f *= 1024
-	case "Kb":
-		f *= 1024 / 8
+	case "kb", "k":
+		f *= (1024 / 8)
 	case "MB", "M":
 		f *= 1024 * 1024
-	case "Mb":
-		f *= (1024 * 1024) / 8
+	case "mb", "m":
+		f *= ((1024 * 1024) / 8)
 	case "GB", "G":
 		f *= 1024 * 1024 * 1024
-	case "Gb":
-		f *= (1024 * 1024 * 1024) / 8
+	case "gb", "g":
+		f *= ((1024 * 1024 * 1024) / 8)
 	default:
 		return fmt.Errorf("unknown unit given %s", u)
 	}
