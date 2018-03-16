@@ -69,6 +69,14 @@ func (s *Size) String() string {
 	return fmt.Sprint(*s)
 }
 
+func (s *Size) Divide(n int) Size {
+	return Size(float64(*s) / float64(n))
+}
+
+func (s *Size) Multiply(n int) Size {
+	return Size(float64(*s) * float64(n))
+}
+
 func (s *Size) Set(v string) error {
 	var (
 		f float64
