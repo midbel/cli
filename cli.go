@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"flag"
@@ -10,6 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+)
+
+const (
+	BlockTypeRSA   = "RSA PRIVATE KEY"
+	BlockTypeECDSA = "EC PRIVATE KEY"
+	BlockTypeCert  = "CERTIFICATE"
+	BlockTypeCSR   = "CERTIFICATE REQUEST"
 )
 
 type Time struct {
@@ -38,7 +46,7 @@ type Certificate struct {
 }
 
 func (c *Certificate) String() string {
-	return fmt.Sprint(*c)
+	return "CERTIFICATE"
 }
 
 func (c *Certificate) Set(v string) error {
@@ -53,6 +61,34 @@ func (c *Certificate) Set(v string) error {
 	}
 	c.Cert = cert
 	return nil
+}
+
+type PrivateKey struct {
+	Key crypto.PrivateKey
+}
+
+func (p *PrivateKey) String() string {
+	return "PRIVATE KEY"
+}
+
+func (p *PrivateKey) Set(v string) error {
+	bs, err := ioutil.ReadFile(v)
+	if err != nil {
+		return err
+	}
+	b, _ := pem.Decode(bs)
+
+	var key crypto.Signer
+	switch b.Type {
+	case BlockTypeRSA:
+		key, err = x509.ParsePKCS1PrivateKey(b.Bytes)
+	case BlockTypeECDSA:
+		key, err = x509.ParseECPrivateKey(b.Bytes)
+	default:
+		return fmt.Errorf("unsupported key type %s", b.Type)
+	}
+	p.Key = key
+	return err
 }
 
 type Size float64
