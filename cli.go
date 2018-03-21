@@ -93,6 +93,14 @@ func (p *PrivateKey) Set(v string) error {
 
 type Size float64
 
+func ParseSize(v string) (Size, error) {
+	var s Size
+	if err := s.Set(v); err != nil {
+		return 0, err
+	}
+	return s, nil
+}
+
 func (s *Size) Float() float64 {
 	return float64(*s)
 }
