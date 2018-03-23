@@ -121,7 +121,7 @@ func (s *Size) String() string {
 		u string
 		v float64
 	)
-	switch {
+	switch s := *s; {
 	case s < Kilo:
 		u, v = "B", float64(s)
 	case s >= Kilo && s < Mega:
