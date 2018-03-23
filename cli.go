@@ -93,6 +93,13 @@ func (p *PrivateKey) Set(v string) error {
 
 type Size float64
 
+const (
+	Byte Size = 1
+	Kilo      = 1024
+	Mega      = Kilo * Kilo
+	Giga      = Mega * Kilo
+)
+
 func ParseSize(v string) (Size, error) {
 	var s Size
 	if err := s.Set(v); err != nil {
@@ -110,7 +117,21 @@ func (s *Size) Int() int64 {
 }
 
 func (s *Size) String() string {
-	return fmt.Sprint(*s)
+	var (
+		u string
+		v float64
+	)
+	switch {
+	case s < Kilo:
+		u, v = "B", float64(s)
+	case s >= Kilo && s < Mega:
+		u, v = "KB", float64(s)/float64(Giga)
+	case s >= Mega && s < Giga:
+		u, v = "MB", float64(s)/float64(Mega)
+	default:
+		u, v = "GB", float64(s)/float64(Giga)
+	}
+	return fmt.Sprintf("%.2f%s", v, u)
 }
 
 func (s *Size) Divide(n int) Size {
