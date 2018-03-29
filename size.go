@@ -19,7 +19,7 @@ const (
 type MultiSize struct {
 	Alea bool
 
-	curr  uint64
+	curr  uint32
 	sizes []Size
 }
 
@@ -32,11 +32,7 @@ func ParseSize(v string) (Size, error) {
 }
 
 func (m *MultiSize) String() string {
-	var f float64
-	for _, s := range m.sizes {
-		f += s.Float()
-	}
-	return formatSize(f)
+	return formatSize(m.Sum())
 }
 
 func (m *MultiSize) Set(v string) error {
@@ -50,10 +46,18 @@ func (m *MultiSize) Set(v string) error {
 	return nil
 }
 
+func (m *MultiSize) Sum() float64 {
+	var f float64
+	for _, s := range m.sizes {
+		f += s.Float()
+	}
+	return f
+}
+
 func (m *MultiSize) Next() Size {
-	ix := atomic.AddUint64(&m.curr, 1)
+	ix := atomic.AddUint32(&m.curr, 1)
 	s := len(m.sizes)
-	return m.sizes[ix%uint64(s)]
+	return m.sizes[ix%uint32(s)]
 }
 
 func (m *MultiSize) Float() float64 {
