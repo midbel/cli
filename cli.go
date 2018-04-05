@@ -9,8 +9,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
+)
+
+var (
+	Version string = "0.0"
+	BuildTime string = ""
+	GitBranch string = "dev"
+	GitHash   string = ""
 )
 
 const (
@@ -114,8 +122,19 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 			return nil
 		}
 	}
+	version := struct {
+		Short bool
+		Long  bool
+	}{}
+	flag.BoolVar(&version.Short, "v", false, "")
+	flag.BoolVar(&version.Long, "version", false, "")
 	flag.Usage = usage
 	flag.Parse()
+
+	if version.Short || version.Long {
+		fmt.Printf("%s version %s-%s %s/%s %s\n", filepath.Base(os.Args[0]), Version, GitBranch, runtime.GOOS, runtime.GOARCH, BuildTime)
+		return nil
+	}
 
 	args := flag.Args()
 	if len(args) == 0 || args[0] == "help" {
