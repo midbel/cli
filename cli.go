@@ -15,10 +15,8 @@ import (
 )
 
 var (
-	Version string = "0.0"
+	Version   string = ""
 	BuildTime string = ""
-	GitBranch string = "dev"
-	GitHash   string = ""
 )
 
 const (
@@ -132,7 +130,7 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 	flag.Parse()
 
 	if version.Short || version.Long {
-		fmt.Printf("%s version %s-%s %s/%s %s\n", filepath.Base(os.Args[0]), Version, GitBranch, runtime.GOOS, runtime.GOARCH, BuildTime)
+		printVersion()
 		return nil
 	}
 
@@ -161,6 +159,25 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 	}
 	n := filepath.Base(os.Args[0])
 	return fmt.Errorf(`%s: unknown subcommand "%s". run  "%[1]s help" for usage`, n, args[0])
+}
+
+func printVersion() {
+	name, syst, arch := filepath.Base(os.Args[0]), runtime.GOOS, runtime.GOARCH
+	if BuildTime == "" {
+		t := time.Now()
+		if p, err := os.Executable(); err == nil {
+			if i, err := os.Stat(p); err == nil {
+				t = i.ModTime().Truncate(time.Hour)
+			}
+		}
+		BuildTime = t.Format(time.RFC3339)
+	}
+	if Version == "" {
+		fmt.Printf("%s unknown %s/%s %s", name, syst, arch, BuildTime)
+	} else {
+		fmt.Printf("%s version %s %s/%s %s", name, Version, syst, arch, BuildTime)
+	}
+	fmt.Println()
 }
 
 type Command struct {
