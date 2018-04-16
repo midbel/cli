@@ -129,12 +129,11 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 	flag.Usage = usage
 	flag.Parse()
 
-	if version.Short || version.Long {
+	args := flag.Args()
+	if version.Short || version.Long || args[0] == "version" {
 		printVersion()
 		return nil
 	}
-
-	args := flag.Args()
 	if len(args) == 0 || args[0] == "help" {
 		flag.Usage()
 		return nil
