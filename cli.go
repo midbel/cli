@@ -130,7 +130,7 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 	flag.Parse()
 
 	args := flag.Args()
-	if version.Short || version.Long || args[0] == "version" {
+	if version.Short || version.Long || (len(args) > 0 && args[0] == "version") {
 		printVersion()
 		return nil
 	}
