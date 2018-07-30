@@ -188,7 +188,7 @@ type Command struct {
 	Run   func(*Command, []string) error
 }
 
-func (c Command) Help() {
+func (c *Command) Help() {
 	if len(c.Desc) > 0 {
 		fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(c.Desc))
 	} else {
@@ -198,7 +198,7 @@ func (c Command) Help() {
 	os.Exit(2)
 }
 
-func (c Command) String() string {
+func (c *Command) String() string {
 	ix := strings.Index(c.Usage, " ")
 	if ix < 0 {
 		return c.Usage
@@ -206,6 +206,6 @@ func (c Command) String() string {
 	return c.Usage[:ix]
 }
 
-func (c Command) Runnable() bool {
+func (c *Command) Runnable() bool {
 	return c.Run != nil
 }
