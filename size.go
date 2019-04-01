@@ -2,9 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"math/rand"
-	"strings"
-	"sync/atomic"
 )
 
 type Size float64
@@ -16,13 +13,6 @@ const (
 	Giga      = Mega * Kilo
 )
 
-type MultiSize struct {
-	Alea bool
-
-	curr  uint32
-	sizes []Size
-}
-
 func ParseSize(v string) (Size, error) {
 	var s Size
 	if err := s.Set(v); err != nil {
@@ -31,69 +21,24 @@ func ParseSize(v string) (Size, error) {
 	return s, nil
 }
 
-func (m *MultiSize) String() string {
-	return formatSize(m.Sum())
+func (s Size) Float() float64 {
+	return float64(s)
 }
 
-func (m *MultiSize) Set(v string) error {
-	for _, i := range strings.Split(v, ",") {
-		s, err := ParseSize(i)
-		if err != nil {
-			return err
-		}
-		m.sizes = append(m.sizes, s)
-	}
-	return nil
+func (s Size) Int() int64 {
+	return int64(s)
 }
 
-func (m *MultiSize) Sum() float64 {
-	var f float64
-	for _, s := range m.sizes {
-		f += s.Float()
-	}
-	return f
+func (s Size) String() string {
+	return formatSize(float64(s))
 }
 
-func (m *MultiSize) Next() Size {
-	ix := atomic.AddUint32(&m.curr, 1)
-	s := len(m.sizes)
-	return m.sizes[ix%uint32(s)]
+func (s Size) Divide(n int) Size {
+	return Size(float64(s) / float64(n))
 }
 
-func (m *MultiSize) Float() float64 {
-	v := m.Next()
-	if m.Alea {
-
-	}
-	return v.Float()
-}
-
-func (m *MultiSize) Int() int64 {
-	v := m.Next()
-	if m.Alea {
-		return rand.Int63n(v.Int())
-	}
-	return v.Int()
-}
-
-func (s *Size) Float() float64 {
-	return float64(*s)
-}
-
-func (s *Size) Int() int64 {
-	return int64(*s)
-}
-
-func (s *Size) String() string {
-	return formatSize(float64(*s))
-}
-
-func (s *Size) Divide(n int) Size {
-	return Size(float64(*s) / float64(n))
-}
-
-func (s *Size) Multiply(n int) Size {
-	return Size(float64(*s) * float64(n))
+func (s Size) Multiply(n int) Size {
+	return Size(float64(s) * float64(n))
 }
 
 func (s *Size) Set(v string) error {

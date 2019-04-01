@@ -1,12 +1,8 @@
 package cli
 
 import (
-	"crypto"
-	"crypto/x509"
-	"encoding/pem"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,13 +13,6 @@ import (
 var (
 	Version   string = ""
 	BuildTime string = ""
-)
-
-const (
-	BlockTypeRSA   = "RSA PRIVATE KEY"
-	BlockTypeECDSA = "EC PRIVATE KEY"
-	BlockTypeCert  = "CERTIFICATE"
-	BlockTypeCSR   = "CERTIFICATE REQUEST"
 )
 
 type Time struct {
@@ -45,56 +34,6 @@ func (t *Time) Set(v string) error {
 	}
 	t.Time = i
 	return nil
-}
-
-type Certificate struct {
-	Cert *x509.Certificate
-}
-
-func (c *Certificate) String() string {
-	return "CERTIFICATE"
-}
-
-func (c *Certificate) Set(v string) error {
-	bs, err := ioutil.ReadFile(v)
-	if err != nil {
-		return err
-	}
-	b, _ := pem.Decode(bs)
-	cert, err := x509.ParseCertificate(b.Bytes)
-	if err != nil {
-		return err
-	}
-	c.Cert = cert
-	return nil
-}
-
-type PrivateKey struct {
-	Key crypto.PrivateKey
-}
-
-func (p *PrivateKey) String() string {
-	return "PRIVATE KEY"
-}
-
-func (p *PrivateKey) Set(v string) error {
-	bs, err := ioutil.ReadFile(v)
-	if err != nil {
-		return err
-	}
-	b, _ := pem.Decode(bs)
-
-	var key crypto.Signer
-	switch b.Type {
-	case BlockTypeRSA:
-		key, err = x509.ParsePKCS1PrivateKey(b.Bytes)
-	case BlockTypeECDSA:
-		key, err = x509.ParseECPrivateKey(b.Bytes)
-	default:
-		return fmt.Errorf("unsupported key type %s", b.Type)
-	}
-	p.Key = key
-	return err
 }
 
 func IsDaemon() bool {
