@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -51,6 +53,28 @@ func IsDaemon() bool {
 		}
 	}
 	return true
+}
+
+func Usage(cmd, help string, cs []*Command) func() {
+	sort.Slice(cs, func(i, j int) bool { return cs[i].String() < cs[j].String() })
+	f := func() {
+		data := struct {
+			Name     string
+			Commands []*Command
+		}{
+			Name:     cmd,
+			Commands: cs,
+		}
+		fs := map[string]interface{}{
+			"join": strings.Join,
+		}
+		// sort.Slice(data.Commands, func(i, j int) bool { return data.Commands[i].String() < data.Commands[j].String() })
+		t := template.Must(template.New("help").Funcs(fs).Parse(help))
+		t.Execute(os.Stderr, data)
+
+		os.Exit(2)
+	}
+	return f
 }
 
 func Run(cs []*Command, usage func(), hook func(*Command) error) error {
