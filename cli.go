@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -17,25 +18,28 @@ var (
 	BuildTime string = ""
 )
 
-type Time struct {
-	time.Time
+const (
+	BadExitCode = 1
+)
+
+type ExitError struct {
+	Err  error
+	Code int
 }
 
-func (t *Time) String() string {
-	return t.Time.String()
+func (e *ExitError) Error() string {
+	return e.Err.Error()
 }
 
-func (t *Time) Set(v string) error {
-	if v == "" {
-		t.Time = time.Now()
-		return nil
+func (e *ExitError) Unwrap() error {
+	return e.Err
+}
+
+func Exit(err error, code int) error {
+	return &ExitError{
+		Err:  err,
+		Code: code,
 	}
-	i, err := time.Parse(time.RFC3339, v)
-	if err != nil {
-		return err
-	}
-	t.Time = i
-	return nil
 }
 
 func IsDaemon() bool {
@@ -65,16 +69,29 @@ func Usage(cmd, help string, cs []*Command) func() {
 			Name:     cmd,
 			Commands: cs,
 		}
-		fs := map[string]interface{}{
+		fs := template.FuncMap{
 			"join": strings.Join,
 		}
-		// sort.Slice(data.Commands, func(i, j int) bool { return data.Commands[i].String() < data.Commands[j].String() })
 		t := template.Must(template.New("help").Funcs(fs).Parse(help))
 		t.Execute(os.Stderr, data)
 
 		os.Exit(2)
 	}
 	return f
+}
+
+func RunAndExit(cs []*Command, usage func(), hook func(*Command) error) {
+	if err := Run(cs, usage, hook); err != nil {
+		var (
+			exit ExitError
+			code = BadExitCode
+		)
+		if errors.As(err, &exit) {
+			code, err = exit.Code, exit.Err
+		}
+		fmt.Fprintln(os.Stderr, exit.Err)
+		os.Exit(code)
+	}
 }
 
 func Run(cs []*Command, usage func(), hook func(*Command) error) error {
@@ -87,9 +104,9 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 		Short bool
 		Long  bool
 	}{}
+	flag.Usage = usage
 	flag.BoolVar(&version.Short, "v", false, "")
 	flag.BoolVar(&version.Long, "version", false, "")
-	flag.Usage = usage
 	flag.Parse()
 
 	args := flag.Args()
