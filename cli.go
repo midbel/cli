@@ -80,8 +80,8 @@ func Usage(cmd, help string, cs []*Command) func() {
 	return f
 }
 
-func RunAndExit(cs []*Command, usage func(), hook func(*Command) error) {
-	if err := Run(cs, usage, hook); err != nil {
+func RunAndExit(cs []*Command, usage func()) {
+	if err := Run(cs, usage); err != nil {
 		var (
 			exit ExitError
 			code = BadExitCode
@@ -94,12 +94,7 @@ func RunAndExit(cs []*Command, usage func(), hook func(*Command) error) {
 	}
 }
 
-func Run(cs []*Command, usage func(), hook func(*Command) error) error {
-	if hook == nil {
-		hook = func(_ *Command) error {
-			return nil
-		}
-	}
+func Run(cs []*Command, usage func()) error {
 	version := struct {
 		Short bool
 		Long  bool
@@ -131,9 +126,6 @@ func Run(cs []*Command, usage func(), hook func(*Command) error) error {
 	}
 	if c, ok := set[args[0]]; ok && c.Runnable() {
 		c.Flag.Usage = c.Help
-		if err := hook(c); err != nil {
-			return err
-		}
 		return c.Run(c, args[1:])
 	}
 	n := filepath.Base(os.Args[0])
