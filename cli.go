@@ -83,13 +83,13 @@ func Usage(cmd, help string, cs []*Command) func() {
 func RunAndExit(cs []*Command, usage func()) {
 	if err := Run(cs, usage); err != nil {
 		var (
-			exit ExitError
+			exit *ExitError
 			code = BadExitCode
 		)
 		if errors.As(err, &exit) {
 			code, err = exit.Code, exit.Err
 		}
-		fmt.Fprintln(os.Stderr, exit.Err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(code)
 	}
 }
