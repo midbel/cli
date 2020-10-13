@@ -135,10 +135,11 @@ func Run(cs []*Command, usage func()) error {
 
 func printVersion() {
 	var (
-		name = filepath.Base(os.Args[0])
-		syst = runtime.GOOS
-		arch = runtime.GOARCH
-		buf strings.Builder
+		name    = filepath.Base(os.Args[0])
+		syst    = runtime.GOOS
+		arch    = runtime.GOARCH
+		version = Version
+		buf     strings.Builder
 	)
 	if BuildTime == "" {
 		t := time.Now()
@@ -149,21 +150,25 @@ func printVersion() {
 		}
 		BuildTime = t.UTC().Format(time.RFC3339)
 	}
+	if version == "" {
+		version = "unknown"
+	}
 
 	buf.WriteString(name)
+	buf.WriteRune('-')
+	buf.WriteString(version)
 	buf.WriteRune(' ')
-	if Version != "" {
-		buf.WriteString(Version)
-		buf.WriteRune(' ')
-	}
+
 	buf.WriteString(syst)
 	buf.WriteRune(' ')
 	buf.WriteString(arch)
 	buf.WriteRune(' ')
 	buf.WriteString(BuildTime)
+
 	if CompileWith != "" {
-		buf.WriteRune(' ')
+		buf.WriteString(" (compile with ")
 		buf.WriteString(CompileWith)
+		buf.WriteString(")")
 	}
 	fmt.Fprintln(os.Stdout, buf.String())
 }
