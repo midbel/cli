@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	Version   string = ""
-	BuildTime string = ""
+	Version     string
+	BuildTime   string
+	CompileWith string
 )
 
 const (
@@ -133,7 +134,12 @@ func Run(cs []*Command, usage func()) error {
 }
 
 func printVersion() {
-	name, syst, arch := filepath.Base(os.Args[0]), runtime.GOOS, runtime.GOARCH
+	var (
+		name = filepath.Base(os.Args[0])
+		syst = runtime.GOOS
+		arch = runtime.GOARCH
+		buf strings.Builder
+	)
 	if BuildTime == "" {
 		t := time.Now()
 		if p, err := os.Executable(); err == nil {
@@ -141,14 +147,25 @@ func printVersion() {
 				t = i.ModTime().Truncate(time.Hour)
 			}
 		}
-		BuildTime = t.Format(time.RFC3339)
+		BuildTime = t.UTC().Format(time.RFC3339)
 	}
-	if Version == "" {
-		fmt.Printf("%s unknown %s/%s %s", name, syst, arch, BuildTime)
-	} else {
-		fmt.Printf("%s version %s %s/%s %s", name, Version, syst, arch, BuildTime)
+
+	buf.WriteString(name)
+	buf.WriteRune(' ')
+	if Version != "" {
+		buf.WriteString(Version)
+		buf.WriteRune(' ')
 	}
-	fmt.Println()
+	buf.WriteString(syst)
+	buf.WriteRune(' ')
+	buf.WriteString(arch)
+	buf.WriteRune(' ')
+	buf.WriteString(BuildTime)
+	if CompileWith != "" {
+		buf.WriteRune(' ')
+		buf.WriteString(CompileWith)
+	}
+	fmt.Fprintln(os.Stdout, buf.String())
 }
 
 type Command struct {
