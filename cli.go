@@ -17,6 +17,7 @@ var (
 	Version     string
 	BuildTime   string
 	CompileWith string
+	CompileHost string
 )
 
 const (
@@ -168,6 +169,10 @@ func printVersion() {
 	if CompileWith != "" {
 		buf.WriteString(" (compile with ")
 		buf.WriteString(CompileWith)
+		if CompileHost != "" {
+			buf.WriteString(" - ")
+			buf.WriteString(CompileHost)
+		}
 		buf.WriteString(")")
 	}
 	fmt.Fprintln(os.Stdout, buf.String())
