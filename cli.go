@@ -161,7 +161,7 @@ func printVersion() {
 	buf.WriteRune(' ')
 
 	buf.WriteString(syst)
-	buf.WriteRune(' ')
+	buf.WriteRune('/')
 	buf.WriteString(arch)
 	buf.WriteRune(' ')
 	buf.WriteString(BuildTime)
