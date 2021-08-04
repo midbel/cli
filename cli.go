@@ -44,23 +44,6 @@ func Exit(err error, code int) error {
 	}
 }
 
-func IsDaemon() bool {
-	if os.Getppid() != 1 {
-		return false
-	}
-	for _, f := range []*os.File{os.Stdout, os.Stderr} {
-		s, err := f.Stat()
-		if err != nil {
-			return false
-		}
-		m := s.Mode() & os.ModeDevice
-		if m != 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func Usage(cmd, help string, cs []*Command) func() {
 	sort.Slice(cs, func(i, j int) bool { return cs[i].String() < cs[j].String() })
 	f := func() {
@@ -106,7 +89,11 @@ func Run(cs []*Command, usage func()) error {
 	flag.BoolVar(&version.Long, "version", false, "")
 	flag.Parse()
 
-	args := flag.Args()
+	var (
+		args = flag.Args()
+		set  map[string]*Command
+		cmd  *Command
+	)
 	if version.Short || version.Long || (len(args) > 0 && args[0] == "version") {
 		printVersion()
 		return nil
@@ -116,7 +103,7 @@ func Run(cs []*Command, usage func()) error {
 		return nil
 	}
 
-	set := make(map[string]*Command)
+	set = make(map[string]*Command)
 	for _, c := range cs {
 		if !c.Runnable() {
 			continue
@@ -125,10 +112,16 @@ func Run(cs []*Command, usage func()) error {
 		for _, a := range c.Alias {
 			set[a] = c
 		}
+		if cmd == nil && c.Default {
+			cmd = c
+		}
 	}
 	if c, ok := set[args[0]]; ok && c.Runnable() {
 		c.Flag.Usage = c.Help
 		return c.Run(c, args[1:])
+	}
+	if cmd != nil {
+		return cmd.Run(cmd, args)
 	}
 	n := filepath.Base(os.Args[0])
 	return fmt.Errorf(`%s: unknown subcommand "%s". run  "%[1]s help" for usage`, n, args[0])
@@ -179,12 +172,13 @@ func printVersion() {
 }
 
 type Command struct {
-	Desc  string
-	Usage string
-	Short string
-	Alias []string
-	Flag  flag.FlagSet
-	Run   func(*Command, []string) error
+	Desc    string
+	Usage   string
+	Short   string
+	Default bool
+	Alias   []string
+	Flag    flag.FlagSet
+	Run     func(*Command, []string) error
 }
 
 func (c *Command) Help() {
