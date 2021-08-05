@@ -90,15 +90,14 @@ func Run(cs []*Command, usage func()) error {
 	flag.Parse()
 
 	var (
-		args = flag.Args()
-		set  map[string]*Command
-		cmd  *Command
+		set map[string]*Command
+		cmd *Command
 	)
-	if version.Short || version.Long || (len(args) > 0 && args[0] == "version") {
+	if version.Short || version.Long || (flag.NArg() > 0 && flag.Arg(0) == "version") {
 		printVersion()
 		return nil
 	}
-	if len(args) == 0 || args[0] == "help" {
+	if flag.NArg() == 0 || flag.Arg(0) == "help" {
 		flag.Usage()
 		return nil
 	}
@@ -116,8 +115,9 @@ func Run(cs []*Command, usage func()) error {
 			cmd = c
 		}
 	}
-	if c, ok := set[args[0]]; ok && c.Runnable() {
+	if c, ok := set[flag.Arg(0)]; ok && c.Runnable() {
 		c.Flag.Usage = c.Help
+		args := flag.Args()
 		return c.Run(c, args[1:])
 	}
 	if cmd != nil {
