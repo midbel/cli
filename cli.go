@@ -80,14 +80,20 @@ func RunAndExit(cs []*Command, usage func()) {
 }
 
 func Run(cs []*Command, usage func()) error {
-	version := struct {
-		Short bool
-		Long  bool
-	}{}
-	flag.Usage = usage
-	flag.BoolVar(&version.Short, "v", false, "")
-	flag.BoolVar(&version.Long, "version", false, "")
-	flag.Parse()
+	var (
+		fset = flag.NewFlagSet("", flag.ExitOnError)
+		version = struct {
+			Short bool
+			Long  bool
+			}{}
+
+	)
+	fset.Usage = usage
+	fset.BoolVar(&version.Short, "v", false, "")
+	fset.BoolVar(&version.Long, "version", false, "")
+	if err := fset.Parse(os.Args[1:]); err != nil {
+		return err
+	}
 
 	var (
 		set map[string]*Command
@@ -97,8 +103,8 @@ func Run(cs []*Command, usage func()) error {
 		printVersion()
 		return nil
 	}
-	if flag.NArg() == 0 || flag.Arg(0) == "help" {
-		flag.Usage()
+	if fset.NArg() == 0 || fset.Arg(0) == "help" {
+		fset.Usage()
 		return nil
 	}
 
@@ -115,9 +121,9 @@ func Run(cs []*Command, usage func()) error {
 			cmd = c
 		}
 	}
-	if c, ok := set[flag.Arg(0)]; ok && c.Runnable() {
+	args := fset.Args()
+	if c, ok := set[fset.Arg(0)]; ok && c.Runnable() {
 		c.Flag.Usage = c.Help
-		args := flag.Args()
 		return c.Run(c, args[1:])
 	}
 	if cmd != nil {
