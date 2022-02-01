@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -81,23 +82,23 @@ func RunAndExit(cs []*Command, usage func()) {
 
 func Run(cs []*Command, usage func()) error {
 	var (
-		fset    = flag.NewFlagSet("", flag.ExitOnError)
+		fset    = flag.NewFlagSet("", flag.ContinueOnError)
 		version = struct {
 			Short bool
 			Long  bool
 		}{}
 	)
 	fset.Usage = usage
+	fset.SetOutput(io.Discard)
 	fset.BoolVar(&version.Short, "v", false, "")
 	fset.BoolVar(&version.Long, "version", false, "")
 	if err := fset.Parse(os.Args[1:]); err != nil {
-		return err
+		if !strings.HasPrefix(err.Error(), "flag provided but not defined") {
+			return err
+		}
+		return tryDefault(cs)
 	}
 
-	var (
-		set map[string]*Command
-		cmd *Command
-	)
 	if version.Short || version.Long || (flag.NArg() > 0 && flag.Arg(0) == "version") {
 		printVersion()
 		return nil
@@ -107,7 +108,7 @@ func Run(cs []*Command, usage func()) error {
 		return nil
 	}
 
-	set = make(map[string]*Command)
+	set := make(map[string]*Command)
 	for _, c := range cs {
 		if !c.Runnable() {
 			continue
@@ -116,20 +117,29 @@ func Run(cs []*Command, usage func()) error {
 		for _, a := range c.Alias {
 			set[a] = c
 		}
-		if cmd == nil && c.Default {
-			cmd = c
-		}
 	}
 	args := fset.Args()
 	if c, ok := set[fset.Arg(0)]; ok && c.Runnable() {
 		c.Flag.Usage = c.Help
 		return c.Run(c, args[1:])
 	}
-	if cmd != nil {
-		return cmd.Run(cmd, args)
-	}
 	n := filepath.Base(os.Args[0])
 	return fmt.Errorf(`%s: unknown subcommand "%s". run  "%[1]s help" for usage`, n, args[0])
+}
+
+func tryDefault(cs []*Command) error {
+	var cmd *Command
+	for i := range cs {
+		if cs[i].Default {
+			cmd = cs[i]
+			break
+		}
+	}
+	if cmd != nil {
+		cmd.Flag.Usage = cmd.Help
+		return cmd.Run(cmd, os.Args[1:])
+	}
+	return fmt.Errorf("no sub-command given!")
 }
 
 func printVersion() {
