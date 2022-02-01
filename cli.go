@@ -81,12 +81,11 @@ func RunAndExit(cs []*Command, usage func()) {
 
 func Run(cs []*Command, usage func()) error {
 	var (
-		fset = flag.NewFlagSet("", flag.ExitOnError)
+		fset    = flag.NewFlagSet("", flag.ExitOnError)
 		version = struct {
 			Short bool
 			Long  bool
-			}{}
-
+		}{}
 	)
 	fset.Usage = usage
 	fset.BoolVar(&version.Short, "v", false, "")
