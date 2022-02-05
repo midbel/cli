@@ -12,6 +12,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/midbel/distance"
 )
 
 var (
@@ -69,13 +71,24 @@ func Usage(cmd, help string, cs []*Command) func() {
 func RunAndExit(cs []*Command, usage func()) {
 	if err := Run(cs, usage); err != nil {
 		var (
-			exit *ExitError
-			code = BadExitCode
+			code    = BadExitCode
+			exit    *ExitError
+			suggest SuggestError
+			list    []string
 		)
-		if errors.As(err, &exit) {
+		if errors.As(err, &suggest) {
+			list = suggest.Similar(cs)
+		} else if errors.As(err, &exit) {
 			code, err = exit.Code, exit.Err
 		}
 		fmt.Fprintln(os.Stderr, err)
+		if len(list) > 0 {
+			fmt.Fprintln(os.Stderr)
+			fmt.Fprintln(os.Stderr, "most similar commands are:")
+			for _, c := range list {
+				fmt.Fprintln(os.Stderr, " ", c)
+			}
+		}
 		os.Exit(code)
 	}
 }
@@ -123,8 +136,33 @@ func Run(cs []*Command, usage func()) error {
 		c.Flag.Usage = c.Help
 		return c.Run(c, args[1:])
 	}
-	n := filepath.Base(os.Args[0])
-	return fmt.Errorf(`%s: unknown subcommand "%s". run  "%[1]s help" for usage`, n, args[0])
+	return Suggest(fset.Arg(0))
+}
+
+type SuggestError struct {
+	Cmd string
+}
+
+func Suggest(cmd string) error {
+	return SuggestError{
+		Cmd: cmd,
+	}
+}
+
+func (e SuggestError) Similar(others []*Command) []string {
+	var list []string
+	for _, c := range others {
+		if !c.Runnable() || c.String() == e.Cmd {
+			continue
+		}
+		list = append(list, c.String())
+	}
+	return distance.Levenshtein(e.Cmd, list)
+}
+
+func (e SuggestError) Error() string {
+	exec := filepath.Base(os.Args[0])
+	return fmt.Sprintf(`%s: unknown sub-command. run "%s help" for usage`, e.Cmd, exec)
 }
 
 func tryDefault(cs []*Command) error {
