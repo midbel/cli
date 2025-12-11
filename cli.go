@@ -81,11 +81,11 @@ func createNode(name string) *CommandNode {
 
 func (c CommandNode) Help() {
 	if c.cmd.Summary != "" {
-		fmt.Fprintln(os.Stderr, summary)
+		fmt.Fprintln(os.Stderr, c.cmd.Summary)
 		fmt.Fprintln(os.Stderr)
 	}
 	if c.cmd.Help != "" {
-		fmt.Fprintln(os.Stderr, help)
+		fmt.Fprintln(os.Stderr, c.cmd.Help)
 		fmt.Fprintln(os.Stderr)
 	}
 	fmt.Fprintln(os.Stderr, "available sub command(s)")
