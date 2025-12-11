@@ -88,10 +88,12 @@ func (c CommandNode) Help() {
 		fmt.Fprintln(os.Stderr, c.cmd.Help)
 		fmt.Fprintln(os.Stderr)
 	}
-	fmt.Fprintln(os.Stderr, "available sub command(s)")
-	for s, n := range c.Children {
-		fmt.Fprintf(os.Stderr, "- %s: %s", s, n.cmd.getSummary())
-		fmt.Fprintln(os.Stderr)
+	if len(c.Children) > 0 {
+		fmt.Fprintln(os.Stderr, "available sub command(s)")
+		for s, n := range c.Children {
+			fmt.Fprintf(os.Stderr, "- %s: %s", s, n.cmd.getSummary())
+			fmt.Fprintln(os.Stderr)
+		}
 	}
 	if c.cmd.Usage != "" {
 		fmt.Fprintln(os.Stderr)
