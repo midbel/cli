@@ -27,20 +27,12 @@ func (e SuggestionError) Error() string {
 	return fmt.Sprintf("%s: unknown sub command", e.Name)
 }
 
-type DelegateError struct {
-	Command string
-	Args    []string
-}
-
-func (e DelegateError) Error() string {
-	return fmt.Sprintf("delegate to command %s", e.Command)
-}
-
 type Command struct {
 	Name    string
 	Alias   []string
 	Summary string
 	Help    string
+	Usage   string
 	Handler
 }
 
@@ -49,12 +41,6 @@ func Help(summary, help string) *Command {
 		Summary: summary,
 		Help:    help,
 		Handler: helpHandler{},
-	}
-}
-
-func Delegate(to string) *Command {
-	return &Command{
-		Handler: delegateHandler{},
 	}
 }
 
@@ -70,17 +56,6 @@ func (c *Command) getAliases() []string {
 	return c.Alias
 }
 
-func printHelp(w io.Writer, summary, help string) {
-	if summary != "" {
-		fmt.Fprintln(w, summary)
-		fmt.Fprintln(w)
-	}
-	if help != "" {
-		fmt.Fprintln(w, help)
-		fmt.Fprintln(w)
-	}
-}
-
 type Handler interface {
 	Run([]string) error
 }
@@ -89,18 +64,6 @@ type helpHandler struct{}
 
 func (helpHandler) Run(_ []string) error {
 	return flag.ErrHelp
-}
-
-type delegateHandler struct {
-	To string
-}
-
-func (d delegateHandler) Run(args []string) error {
-	err := DelegateError{
-		Command: d.To,
-		Args:    args,
-	}
-	return err
 }
 
 type CommandNode struct {
@@ -117,10 +80,22 @@ func createNode(name string) *CommandNode {
 }
 
 func (c CommandNode) Help() {
-	printHelp(os.Stderr, c.cmd.getSummary(), c.cmd.getHelp())
+	if c.cmd.Summary != "" {
+		fmt.Fprintln(os.Stderr, summary)
+		fmt.Fprintln(os.Stderr)
+	}
+	if c.cmd.Help != "" {
+		fmt.Fprintln(os.Stderr, help)
+		fmt.Fprintln(os.Stderr)
+	}
 	fmt.Fprintln(os.Stderr, "available sub command(s)")
 	for s, n := range c.Children {
-		fmt.Printf("- %s: %s", s, n.cmd.getSummary())
+		fmt.Fprintf(os.Stderr, "- %s: %s", s, n.cmd.getSummary())
+		fmt.Fprintln(os.Stderr)
+	}
+	if c.cmd.Usage != "" {
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintf(os.Stderr, "Usage: %s", c.cmd.Usage)
 		fmt.Fprintln(os.Stderr)
 	}
 }
