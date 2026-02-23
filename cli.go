@@ -149,7 +149,11 @@ func (t *CommandTrie) Help() {
 	}
 	fmt.Fprintln(os.Stderr, "Available commands")
 	for k, n := range t.root.Children {
-		fmt.Printf("- %s: %s", k, n.cmd.getSummary())
+		var summary string
+		if n.cmd != nil {
+			summary = n.cmd.getSummary()
+		}
+		fmt.Printf("- %s: %s", k, summary)
 		fmt.Fprintln(os.Stderr)
 	}
 }
