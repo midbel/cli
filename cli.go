@@ -124,6 +124,9 @@ func (t *CommandTrie) SetHelp(help string) {
 }
 
 func (t *CommandTrie) Register(paths []string, cmd *Command) error {
+	if cmd.Handler == nil {
+		return nil
+	}
 	node := t.root
 	for _, name := range paths {
 		if node.Children[name] == nil {
@@ -147,13 +150,22 @@ func (t *CommandTrie) Help() {
 	if len(t.root.Children) == 0 {
 		return
 	}
+	var longest int
+	for k := range t.root.Children {
+		longest = max(longest, len(k))
+	}
+	longest++
+	commands := slices.Collect(maps.Keys(t.root.Children))
+	slices.Sort(commands)
 	fmt.Fprintln(os.Stderr, "Available commands")
-	for k, n := range t.root.Children {
+	for _, k := range commands {
+		n := t.root.Children[k]
+		
 		var summary string
 		if n.cmd != nil {
 			summary = n.cmd.getSummary()
 		}
-		fmt.Printf("- %s: %s", k, summary)
+		fmt.Printf("- %-*s: %s", longest, k, summary)
 		fmt.Fprintln(os.Stderr)
 	}
 }
