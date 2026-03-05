@@ -160,7 +160,7 @@ func (t *CommandTrie) Help() {
 	fmt.Fprintln(os.Stderr, "Available commands")
 	for _, k := range commands {
 		n := t.root.Children[k]
-		
+
 		var summary string
 		if n.cmd != nil {
 			summary = n.cmd.getSummary()
