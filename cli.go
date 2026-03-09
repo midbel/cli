@@ -26,7 +26,7 @@ type UsageError struct {
 	Usage   string
 }
 
-func (e UsageError) Error() error {
+func (e UsageError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Name, e.Message)
 }
 
