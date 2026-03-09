@@ -21,12 +21,12 @@ func NewFlagSet(name string) *flag.FlagSet {
 }
 
 type UsageError struct {
-	Name string
+	Name    string
 	Message string
-	Usage string
+	Usage   string
 }
 
-func (e UsageError) Error {
+func (e UsageError) Error() error {
 	return fmt.Sprintf("%s: %s", e.Name, e.Message)
 }
 
