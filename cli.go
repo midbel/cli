@@ -12,10 +12,22 @@ import (
 	"github.com/midbel/distance"
 )
 
+var ErrUsage = errors.New("usage")
+
 func NewFlagSet(name string) *flag.FlagSet {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
 	return set
+}
+
+type UsageError struct {
+	Name string
+	Message string
+	Usage string
+}
+
+func (e UsageError) Error {
+	return fmt.Sprintf("%s: %s", e.Name, e.Message)
 }
 
 type SuggestionError struct {
@@ -205,6 +217,8 @@ func (t *CommandTrie) Execute(args []string) error {
 	if errors.Is(err, flag.ErrHelp) {
 		node.Help()
 		return nil
+	} else if errors.Is(err, ErrUsage) {
+		return fmt.Errorf("Usage: %s", node.cmd.Usage)
 	}
 	return err
 }
