@@ -5,6 +5,11 @@ import (
 	"unicode/utf8"
 )
 
+var (
+	checkMarker = "\u2713"
+	crossMarker = "\u2717"
+)
+
 func Center(str string, width int) string {
 	size := utf8.RuneCountInString(str)
 	if size >= width {
@@ -19,9 +24,18 @@ func Center(str string, width int) string {
 	return strings.Repeat(" ", left) + str + strings.Repeat(" ", right)
 }
 
+func Right(str string, width int) string {
+	size := utf8.RuneCountInString(str)
+	if size >= width {
+		return str
+	}
+	padding := width - size
+	return strings.Repeat(" ", padding) + str
+}
+
 func MarkBool(b bool) string {
 	if b {
-		return "\u2713"
+		return checkMarker
 	}
-	return "\u2717"
+	return crossMarker
 }

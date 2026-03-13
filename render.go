@@ -3,8 +3,17 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"text/tabwriter"
+)
+
+type Align int
+
+const (
+	AlignLeft Align = iota
+	AlignCenter
+	AlignRight
 )
 
 type Table struct {
@@ -19,12 +28,35 @@ type Renderer interface {
 
 type TableRenderer struct {
 	out io.Writer
+	align map[int]Align
 }
 
-func NewTableRenderer(w io.Writer) Renderer {
+func NewTableRenderer(w io.Writer) *TableRenderer {
 	return &TableRenderer{
 		out: w,
+		align: make(map[int]Align),
 	}
+}
+
+func (r *TableRenderer) SetAlignment(col int, align Align) {
+	r.align[col] = align
+}
+
+func (r *TableRenderer) alignmentFor(col int, str string) Align {
+	a, ok := r.align[col]
+	if ok {
+		return a
+	}
+	if _, err := strconv.ParseFloat(str, 64); err == nil {
+		return AlignRight
+	}
+	if _, err := strconv.ParseBool(str); err == nil {
+		return AlignCenter
+	}
+	if str == crossMarker || str == checkMarker {
+		return AlignCenter
+	}
+	return AlignLeft
 }
 
 func (r *TableRenderer) Render(t Table) error {
@@ -53,7 +85,18 @@ func (r *TableRenderer) Render(t Table) error {
 			if i > 0 {
 				fmt.Fprint(wt, "\t")
 			}
-			fmt.Fprint(wt, row[i])
+			var (
+				str = row[i]
+				align = r.alignmentFor(i+1, str)
+			)
+			switch align {
+			case AlignRight:
+				str = Right(str, len(t.Headers[i]))
+			case AlignCenter:
+				str = Center(str, len(t.Headers[i]))
+			default:
+			}
+			fmt.Fprint(wt, str)
 		}
 		fmt.Fprintln(wt)
 	}
