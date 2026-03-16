@@ -17,8 +17,8 @@ func Center(str string, width int) string {
 	}
 	var (
 		padding = width - size
-		left = padding / 2
-		right = padding - left
+		left    = padding / 2
+		right   = padding - left
 	)
 
 	return strings.Repeat(" ", left) + str + strings.Repeat(" ", right)

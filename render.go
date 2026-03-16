@@ -26,13 +26,13 @@ type Renderer interface {
 }
 
 type TableRenderer struct {
-	out io.Writer
+	out   io.Writer
 	align map[int]Align
 }
 
 func NewTableRenderer(w io.Writer) *TableRenderer {
 	return &TableRenderer{
-		out: w,
+		out:   w,
 		align: make(map[int]Align),
 	}
 }
@@ -87,7 +87,7 @@ func (r *TableRenderer) Render(t Table) error {
 				fmt.Fprint(wt, "\t")
 			}
 			var (
-				str = row[i]
+				str   = row[i]
 				align = r.alignmentFor(i+1, str)
 			)
 			w := len(str)
