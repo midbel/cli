@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"text/tabwriter"
 )
 
@@ -59,26 +58,28 @@ func (r *TableRenderer) alignmentFor(col int, str string) Align {
 	return AlignLeft
 }
 
+func (r *TableRenderer) Empty() {
+	fmt.Fprintln(r.out)
+}
+
 func (r *TableRenderer) Render(t Table) error {
+	if len(t.Rows) == 0 {
+		return nil
+	}
 	if t.Title != "" {
 		fmt.Fprintln(r.out, t.Title)
 	}
 	wt := tabwriter.NewWriter(r.out, 0, 0, 2, ' ', 0)
 
-	for i := range t.Headers {
-		if i > 0 {
-			fmt.Fprint(wt, "\t")
+	if len(t.Headers) > 0 {
+		for i := range t.Headers {
+			if i > 0 {
+				fmt.Fprint(wt, "\t")
+			}
+			fmt.Fprint(wt, t.Headers[i])
 		}
-		fmt.Fprint(wt, t.Headers[i])
+		fmt.Fprintln(wt)
 	}
-	fmt.Fprintln(wt)
-	for i := range t.Headers {
-		if i > 0 {
-			fmt.Fprint(wt, "\t")
-		}
-		fmt.Fprint(wt, strings.Repeat("-", len(t.Headers[i])))
-	}
-	fmt.Fprintln(wt)
 
 	for _, row := range t.Rows {
 		for i := range row {
@@ -89,9 +90,13 @@ func (r *TableRenderer) Render(t Table) error {
 				str = row[i]
 				align = r.alignmentFor(i+1, str)
 			)
+			w := len(str)
+			if i < len(t.Headers) {
+				w = len(t.Headers[i])
+			}
 			switch align {
 			case AlignRight:
-				str = Right(str, len(t.Headers[i]))
+				str = Right(str, w)
 			case AlignCenter:
 				str = Center(str, len(t.Headers[i]))
 			default:
