@@ -16,6 +16,7 @@ const (
 )
 
 type Table struct {
+
 	Title   string
 	Headers []string
 	Rows    [][]string
@@ -28,6 +29,8 @@ type Renderer interface {
 type TableRenderer struct {
 	out   io.Writer
 	align map[int]Align
+
+	WithLineNumbers bool
 }
 
 func NewTableRenderer(w io.Writer) *TableRenderer {
@@ -72,6 +75,10 @@ func (r *TableRenderer) Render(t Table) error {
 	wt := tabwriter.NewWriter(r.out, 0, 0, 2, ' ', 0)
 
 	if len(t.Headers) > 0 {
+		if r.WithLineNumbers {
+			fmt.Fprint(wt, "#")
+			fmt.Fprint(wt, "\t")
+		}
 		for i := range t.Headers {
 			if i > 0 {
 				fmt.Fprint(wt, "\t")
@@ -81,7 +88,11 @@ func (r *TableRenderer) Render(t Table) error {
 		fmt.Fprintln(wt)
 	}
 
-	for _, row := range t.Rows {
+	for i, row := range t.Rows {
+		if r.WithLineNumbers {
+			fmt.Fprintf(wt, "%-d", i+1)
+			fmt.Fprint(wt, "\t")
+		}
 		for i := range row {
 			if i > 0 {
 				fmt.Fprint(wt, "\t")
