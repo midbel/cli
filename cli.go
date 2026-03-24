@@ -14,6 +14,11 @@ import (
 
 var ErrUsage = errors.New("usage")
 
+var (
+	Stdout = os.Stdout
+	Stderr = os.Stderr
+)
+
 func NewFlagSet(name string) *flag.FlagSet {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)

@@ -16,7 +16,6 @@ const (
 )
 
 type Table struct {
-
 	Title   string
 	Headers []string
 	Rows    [][]string
