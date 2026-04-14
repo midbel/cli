@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/midbel/distance"
+	"github.com/midbel/textwrap"
 )
 
 var ErrUsage = errors.New("usage")
@@ -45,11 +46,11 @@ func (e SuggestionError) Error() string {
 }
 
 type Command struct {
-	Name    string
-	Alias   []string
-	Summary string
-	Help    string
-	Usage   string
+	Name      string
+	Alias     []string
+	Summary   string
+	Help      string
+	Usage     string
 	Handler
 }
 
@@ -157,11 +158,11 @@ func (t *CommandTrie) Register(paths []string, cmd *Command) error {
 
 func (t *CommandTrie) Help() {
 	if t.summary != "" {
-		fmt.Fprintln(os.Stderr, t.summary)
+		fmt.Fprintln(os.Stderr, textwrap.Wrap(t.summary, 72))
 		fmt.Fprintln(os.Stderr)
 	}
 	if t.help != "" {
-		fmt.Fprintln(os.Stderr, t.help)
+		fmt.Fprintln(os.Stderr, textwrap.Wrap(t.help, 72))
 		fmt.Fprintln(os.Stderr)
 	}
 	if len(t.root.Children) == 0 {
