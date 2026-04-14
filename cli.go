@@ -99,22 +99,21 @@ func createNode(name string) *CommandNode {
 
 func (c CommandNode) Help() {
 	if c.cmd.Summary != "" {
-		fmt.Fprintln(os.Stderr, c.cmd.Summary)
+		fmt.Fprintln(os.Stderr, textwrap.Wrap(c.cmd.Summary, 72))
 		fmt.Fprintln(os.Stderr)
 	}
 	if c.cmd.Help != "" {
-		fmt.Fprintln(os.Stderr, c.cmd.Help)
+		fmt.Fprintln(os.Stderr, textwrap.Wrap(c.cmd.Help, 72))
 		fmt.Fprintln(os.Stderr)
 	}
 	if len(c.Children) > 0 {
-		fmt.Fprintln(os.Stderr, "available sub command(s)")
+		fmt.Fprintln(os.Stderr, "Available sub command(s)")
 		for s, n := range c.Children {
 			fmt.Fprintf(os.Stderr, "- %s: %s", s, n.cmd.getSummary())
 			fmt.Fprintln(os.Stderr)
 		}
 	}
 	if c.cmd.Usage != "" {
-		fmt.Fprintln(os.Stderr)
 		fmt.Fprintf(os.Stderr, "Usage: %s", c.cmd.Usage)
 		fmt.Fprintln(os.Stderr)
 	}
