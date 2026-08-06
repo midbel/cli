@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -30,12 +31,15 @@ type TableRenderer struct {
 	align map[int]Align
 
 	WithLineNumbers bool
+	WithUnderline bool
+	Separator rune
 }
 
 func NewTableRenderer(w io.Writer) *TableRenderer {
 	return &TableRenderer{
 		out:   w,
 		align: make(map[int]Align),
+		Separator: ' ',
 	}
 }
 
@@ -70,8 +74,11 @@ func (r *TableRenderer) Render(t Table) error {
 	}
 	if t.Title != "" {
 		fmt.Fprintln(r.out, t.Title)
+		if r.WithUnderline {
+			fmt.Fprintln(r.out, strings.Repeat("-", len(t.Title)))
+		}
 	}
-	wt := tabwriter.NewWriter(r.out, 0, 0, 2, ' ', 0)
+	wt := tabwriter.NewWriter(r.out, 0, 0, 2, byte(r.Separator), 0)
 
 	if len(t.Headers) > 0 {
 		if r.WithLineNumbers {
