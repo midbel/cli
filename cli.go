@@ -100,23 +100,23 @@ func createNode(name string) *CommandNode {
 
 func (c CommandNode) Help() {
 	if c.cmd.Usage != "" {
-		fmt.Fprintf(os.Stderr, "Usage: %s", c.cmd.Usage)
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintf(Stderr, "Usage: %s", c.cmd.Usage)
+		fmt.Fprintln(Stderr)
 	}
 	if c.cmd.Summary != "" {
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, textwrap.Wrap(c.cmd.Summary, 72))
+		fmt.Fprintln(Stderr)
+		fmt.Fprintln(Stderr, textwrap.Wrap(c.cmd.Summary, 72))
 	}
 	if c.cmd.Help != "" {
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, c.cmd.Help)
+		fmt.Fprintln(Stderr)
+		fmt.Fprintln(Stderr, c.cmd.Help)
 	}
 	if len(c.Children) > 0 {
-		fmt.Fprintln(os.Stderr)
-		fmt.Fprintln(os.Stderr, "Available sub command(s)")
+		fmt.Fprintln(Stderr)
+		fmt.Fprintln(Stderr, "Available sub command(s)")
 		for s, n := range c.Children {
-			fmt.Fprintf(os.Stderr, "- %s: %s", s, n.cmd.getSummary())
-			fmt.Fprintln(os.Stderr)
+			fmt.Fprintf(Stderr, "- %s: %s", s, n.cmd.getSummary())
+			fmt.Fprintln(Stderr)
 		}
 	}
 }
@@ -159,34 +159,14 @@ func (t *CommandTrie) Register(paths []string, cmd *Command) error {
 
 func (t *CommandTrie) Help() {
 	if t.summary != "" {
-		fmt.Fprintln(os.Stderr, textwrap.Wrap(t.summary, 72))
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(Stderr, textwrap.Wrap(t.summary, 72))
+		fmt.Fprintln(Stderr)
 	}
 	if t.help != "" {
-		fmt.Fprintln(os.Stderr, textwrap.Wrap(t.help, 72))
-		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(Stderr, textwrap.Wrap(t.help, 72))
+		fmt.Fprintln(Stderr)
 	}
-	if len(t.root.Children) == 0 {
-		return
-	}
-	var longest int
-	for k := range t.root.Children {
-		longest = max(longest, len(k))
-	}
-	longest++
-	commands := slices.Collect(maps.Keys(t.root.Children))
-	slices.Sort(commands)
-	fmt.Fprintln(os.Stderr, "Available commands")
-	for _, k := range commands {
-		n := t.root.Children[k]
-
-		var summary string
-		if n.cmd != nil {
-			summary = n.cmd.getSummary()
-		}
-		fmt.Printf("- %-*s: %s", longest, k, summary)
-		fmt.Fprintln(os.Stderr)
-	}
+	printCommands(t.root.Children)
 }
 
 func (t *CommandTrie) Execute(args []string) error {
@@ -203,21 +183,39 @@ func (t *CommandTrie) Execute(args []string) error {
 		ix++
 	}
 	if node.cmd == nil {
-		var found bool
-		for _, c := range node.Children {
-			if c.cmd == nil {
-				continue
+		if ix < len(args) {
+			var found bool
+			for _, c := range node.Children {
+				if c.cmd == nil {
+					continue
+				}
+				found = slices.Contains(c.cmd.getAliases(), args[ix])
+				if found {
+					ix++
+					node = c
+					break
+				}
 			}
-			found = slices.Contains(c.cmd.getAliases(), args[ix])
-			if found {
-				ix++
-				node = c
-				break
+			if !found {
+				list := slices.Collect(maps.Keys(node.Children))
+				return t.suggest(args[ix], list)
 			}
-		}
-		if !found {
-			list := slices.Collect(maps.Keys(node.Children))
-			return t.suggest(args[ix], list)
+		} else {
+			var found bool
+			for _, c := range node.Children {
+				if c.cmd == nil {
+					continue
+				}
+				if c.cmd.Default {
+					found = true
+					node = c
+					break
+				}
+			}
+			if !found {
+				printCommands(node.Children)
+				return nil
+			}
 		}
 	}
 	err := node.cmd.Run(args[ix:])
@@ -234,5 +232,30 @@ func (t *CommandTrie) suggest(name string, others []string) error {
 	return SuggestionError{
 		Name:   name,
 		Others: distance.Levenshtein(name, others),
+	}
+}
+
+
+func printCommands(nodes map[string]*CommandNode) {
+	if len(nodes) == 0 {
+		return
+	}
+	var longest int
+	for k := range nodes {
+		longest = max(longest, len(k))
+	}
+	longest++
+	commands := slices.Collect(maps.Keys(nodes))
+	slices.Sort(commands)
+	fmt.Fprintln(Stderr, "Available commands")
+	for _, k := range commands {
+		n := nodes[k]
+
+		var summary string
+		if n.cmd != nil {
+			summary = n.cmd.getSummary()
+		}
+		fmt.Printf("- %-*s: %s", longest, k, summary)
+		fmt.Fprintln(Stderr)
 	}
 }
