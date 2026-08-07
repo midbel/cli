@@ -51,6 +51,7 @@ type Command struct {
 	Summary   string
 	Help      string
 	Usage     string
+	Default   bool
 	Handler
 }
 
@@ -216,7 +217,7 @@ func (t *CommandTrie) Execute(args []string) error {
 		}
 		if !found {
 			list := slices.Collect(maps.Keys(node.Children))
-			return t.sugget(args[ix], list)
+			return t.suggest(args[ix], list)
 		}
 	}
 	err := node.cmd.Run(args[ix:])
@@ -229,7 +230,7 @@ func (t *CommandTrie) Execute(args []string) error {
 	return err
 }
 
-func (t *CommandTrie) sugget(name string, others []string) error {
+func (t *CommandTrie) suggest(name string, others []string) error {
 	return SuggestionError{
 		Name:   name,
 		Others: distance.Levenshtein(name, others),
