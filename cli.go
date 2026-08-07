@@ -175,6 +175,9 @@ func (t *CommandTrie) Execute(args []string) error {
 		ix   int
 	)
 	for _, name := range args {
+		if !isCommandName(name) {
+			break
+		}
 		child := node.Children[name]
 		if child == nil {
 			break
@@ -183,7 +186,7 @@ func (t *CommandTrie) Execute(args []string) error {
 		ix++
 	}
 	if node.cmd == nil {
-		if ix < len(args) {
+		if ix < len(args) && isCommandName(args[ix]) {
 			var found bool
 			for _, c := range node.Children {
 				if c.cmd == nil {
@@ -218,7 +221,11 @@ func (t *CommandTrie) Execute(args []string) error {
 			}
 		}
 	}
-	err := node.cmd.Run(args[ix:])
+	return t.execute(node, args[ix:])
+}
+
+func (t *CommandTrie) execute(node *CommandNode, args []string) error {
+	err := node.cmd.Run(args)
 	if errors.Is(err, flag.ErrHelp) {
 		node.Help()
 		return nil
@@ -255,7 +262,19 @@ func printCommands(nodes map[string]*CommandNode) {
 		if n.cmd != nil {
 			summary = n.cmd.getSummary()
 		}
-		fmt.Printf("- %-*s: %s", longest, k, summary)
+		fmt.Fprintf(Stderr, "- %-*s: %s", longest, k, summary)
 		fmt.Fprintln(Stderr)
 	}
+}
+
+func isCommandName(arg string) bool {
+	return !isTerminator(arg) && !isOption(arg)
+}
+
+func isTerminator(arg string) bool {
+	return arg == "--"
+}
+
+func isOption(arg string) bool {
+	return len(arg) > 1 && arg[0] == '-'
 }
