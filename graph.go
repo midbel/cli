@@ -22,8 +22,8 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			n := len(x.Value)
 			opts.Width = max(opts.Width, n)
 		}
-		opts.Width = (opts.Width + DefaultHorizontalGapSize) * maker.HorizontalDepth()
-		opts.Height = maker.VerticalDepth() * DefaultVerticalGapSize
+		opts.Width = (opts.Width + opts.HorizontalGap) * maker.HorizontalDepth()
+		opts.Height = maker.VerticalDepth() * opts.VerticalGap
 	}
 
 	var (
