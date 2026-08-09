@@ -57,6 +57,10 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			end    = start + len(connect)
 		)
 		copy(tmp, connect)
+		if len(x.Children) == 1 {
+			tmp[0] = horizontalBarAscii
+			tmp[len(tmp)-1] = horizontalBarAscii
+		}
 		if x.Leaf() {
 			tmp = tmp[:sWidth-offset-size]
 			end = start + len(tmp)
@@ -166,12 +170,24 @@ type Node struct {
 	Children []*Node
 }
 
+func NewNode(value string) *Node {
+	return &Node{
+		Value: value,
+	}
+}
+
 func (n *Node) Leaf() bool {
 	return len(n.Children) == 0
 }
 
 type Tree struct {
 	Root *Node
+}
+
+func NewTree(node *Node) *Tree {
+	return &Tree{
+		Root: node,
+	}
 }
 
 type layoutNode struct {
