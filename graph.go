@@ -23,7 +23,7 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			opts.Width = max(opts.Width, n)
 		}
 		opts.Width = (opts.Width + DefaultHorizontalGapSize) * maker.HorizontalDepth()
-		opts.Height = maker.VerticalDepth()
+		opts.Height = maker.VerticalDepth() * DefaultVerticalGapSize
 	}
 
 	var (
@@ -58,7 +58,7 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 		)
 		copy(tmp, connect)
 		if len(x.Children) == 1 {
-			tmp[0] = horizontalBarAscii
+			// tmp[0] = horizontalBarAscii
 			tmp[len(tmp)-1] = horizontalBarAscii
 		}
 		if x.Leaf() {
