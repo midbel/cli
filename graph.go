@@ -10,19 +10,23 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 		opts = defaultTreeRenderOptions.clone()
 	}
 	var (
-		maker       = makeLayout(opts.VerticalGap, opts.Position)
-		layout      = maker.Make(tree.Root)
-		borderWidth int
+		maker  = makeLayout(opts.VerticalGap, opts.Position)
+		layout = maker.Make(tree.Root)
+		bWidth int
 	)
 	if opts.Border {
-		borderWidth++
+		bWidth++
 	}
-	if opts.Width == 0 || opts.Height == 0 {
+	if opts.Width == 0 {
 		for _, x := range layout {
-			n := len(x.Value) + (2*opts.Padding)
+			n := len(x.Value) + (2 * (opts.Padding + opts.HorizontalGap))
 			opts.Width = max(opts.Width, n)
 		}
-		opts.Width = (opts.Width + opts.HorizontalGap) * maker.HorizontalDepth()
+		opts.Width = opts.Width * maker.HorizontalDepth()
+	} else {
+		opts.Width += (2 * opts.HorizontalGap) * maker.HorizontalDepth()
+	}
+	if opts.Height == 0 {
 		opts.Height = maker.VerticalDepth() * opts.VerticalGap
 	}
 
@@ -38,33 +42,28 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 		opts.Height = h
 	}
 	for _, x := range layout {
-		x.X = (x.X * opts.Width) / maker.HorizontalDepth()
+		x.X = ((x.X * opts.Width) / maker.HorizontalDepth()) + opts.HorizontalGap
 		x.Y = (x.Y * opts.Height) / maker.VerticalDepth()
 	}
 
-	var (
-		grid    = makeCanvas(opts.Width, opts.Height, opts.Border)
-		connect = makeConnector(sWidth)
-	)
+	grid := makeCanvas(opts.Width, opts.Height, opts.Border)
 	// draw horizontal connectors
 	for _, x := range layout {
 		var (
-			tmp    = make([]byte, len(connect))
-			size   = len(x.Value) + (2 * opts.Padding)
-			offset = getOffsetX(opts.Align, sWidth, size)
-			start  = x.X + borderWidth
+			connect = makeConnector(sWidth)
+//			offset = getOffsetX(opts.Align, sWidth-(2*opts.HorizontalGap), len(x.Value)+(2*opts.Padding))
+			start = x.X-opts.HorizontalGap+bWidth
 		)
-		copy(tmp, connect)
-		if x.Leaf() {
-			tmp = tmp[:sWidth-offset-size]
-		} else if x.Root {
-			if len(x.Children) == 1 {
-				tmp[len(tmp)-1] = horizontalBarAscii
-			}
-			tmp = tmp[offset:]
-			start += offset
+		if len(x.Children) == 1 {
+			connect[len(connect)-1] = horizontalBarAscii
 		}
-		grid.Put(start, x.Y+borderWidth+vOffset, tmp)
+		if x.Leaf() {
+			connect = connect[:sWidth-len(x.Value)-2*opts.Padding-opts.HorizontalGap]
+		} else if x.Root() {
+			connect = connect[opts.HorizontalGap:]
+			start += opts.HorizontalGap
+		}
+		grid.Put(start, x.Y+bWidth+vOffset, connect)
 	}
 	// draw vertical connectors
 	for _, x := range layout {
@@ -72,8 +71,8 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			continue
 		}
 		for i := 0; i < len(x.Children)-1; i++ {
-			for j := x.Children[i].Y + vOffset + borderWidth; j < x.Children[i+1].Y+vOffset+borderWidth; j++ {
-				at := x.X + borderWidth + sWidth
+			for j := x.Children[i].Y + vOffset + bWidth; j < x.Children[i+1].Y+vOffset+bWidth; j++ {
+				at := x.X + bWidth + sWidth - opts.HorizontalGap
 				if grid.GetByte(at, j) == connectBarAscii {
 					continue
 				}
@@ -86,10 +85,10 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 		var (
 			value  = x.Get(opts.Padding)
 			size   = len(value)
-			offset = getOffsetX(opts.Align, sWidth, size)
-			start  = x.X + borderWidth + offset
+			offset = getOffsetX(opts.Align, sWidth-(2*opts.HorizontalGap), size)
+			start  = x.X + bWidth + offset
 		)
-		grid.Put(start, x.Y+borderWidth+vOffset, value)
+		grid.Put(start, x.Y+bWidth+vOffset, value)
 	}
 	return grid.Render(w)
 }
@@ -177,10 +176,18 @@ func NewTree(node *Node) *Tree {
 
 type layoutNode struct {
 	*Node
-	Root     bool
+	root     bool
 	X        int
 	Y        int
 	Children []*layoutNode
+}
+
+func (n *layoutNode) Leaf() bool {
+	return len(n.Children) == 0
+}
+
+func (n *layoutNode) Root() bool {
+	return n.root
 }
 
 func (n *layoutNode) Get(padding int) []byte {
@@ -324,8 +331,8 @@ func (m *layoutMaker) makeLayout(node *Node, depth int) []*layoutNode {
 		all []*layoutNode
 		sub = layoutNode{
 			Node: node,
-			Root: depth == 0,
 			X:    depth,
+			root: depth == 0,
 		}
 	)
 	for _, c := range node.Children {
