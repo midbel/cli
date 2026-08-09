@@ -19,7 +19,7 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	}
 	if opts.Width == 0 || opts.Height == 0 {
 		for _, x := range layout {
-			n := len(x.Value)
+			n := len(x.Value) + (2*opts.Padding)
 			opts.Width = max(opts.Width, n)
 		}
 		opts.Width = (opts.Width + opts.HorizontalGap) * maker.HorizontalDepth()
@@ -43,70 +43,55 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	}
 
 	var (
-		grid    = prepareGrid(opts.Width, opts.Height, opts.Border)
-		connect = prepareConnector(sWidth)
+		grid    = makeCanvas(opts.Width, opts.Height, opts.Border)
+		connect = makeConnector(sWidth)
 	)
-
+	// draw horizontal connectors
 	for _, x := range layout {
 		var (
-			row    = grid[x.Y+borderWidth+vOffset]
 			tmp    = make([]byte, len(connect))
-			size   = len(x.Value)
-			offset = (sWidth - size) / 2
+			size   = len(x.Value) + (2 * opts.Padding)
+			offset = getOffsetX(opts.Align, sWidth, size)
 			start  = x.X + borderWidth
-			end    = start + len(connect)
 		)
 		copy(tmp, connect)
-		if len(x.Children) == 1 {
-			// tmp[0] = horizontalBarAscii
-			tmp[len(tmp)-1] = horizontalBarAscii
-		}
 		if x.Leaf() {
 			tmp = tmp[:sWidth-offset-size]
-			end = start + len(tmp)
 		} else if x.Root {
+			if len(x.Children) == 1 {
+				tmp[len(tmp)-1] = horizontalBarAscii
+			}
 			tmp = tmp[offset:]
 			start += offset
 		}
-		copy(row[start:end], tmp)
+		grid.Put(start, x.Y+borderWidth+vOffset, tmp)
 	}
+	// draw vertical connectors
 	for _, x := range layout {
 		if x.Leaf() {
 			continue
 		}
 		for i := 0; i < len(x.Children)-1; i++ {
 			for j := x.Children[i].Y + vOffset + borderWidth; j < x.Children[i+1].Y+vOffset+borderWidth; j++ {
-				if grid[j][x.X+borderWidth+sWidth] == connectBarAscii {
+				at := x.X + borderWidth + sWidth
+				if grid.GetByte(at, j) == connectBarAscii {
 					continue
 				}
-				grid[j][x.X+borderWidth+sWidth] = verticalBarAscii
+				grid.PutByte(at, j, verticalBarAscii)
 			}
 		}
 	}
-
+	// draw values
 	for _, x := range layout {
 		var (
-			value = []byte(x.Value)
-			size  = len(value)
-		)
-		if opts.Padding > 0 {
-			size += 2 * opts.Padding
-			tmp := make([]byte, size)
-			for i := range tmp {
-				tmp[i] = ' '
-			}
-			copy(tmp[opts.Padding:], value)
-			value = tmp
-		}
-		var (
-			offset = (sWidth - size) / 2
-			row    = grid[x.Y+borderWidth+vOffset]
+			value  = x.Get(opts.Padding)
+			size   = len(value)
+			offset = getOffsetX(opts.Align, sWidth, size)
 			start  = x.X + borderWidth + offset
-			end    = start + size
 		)
-		copy(row[start:end], value)
+		grid.Put(start, x.Y+borderWidth+vOffset, value)
 	}
-	return renderGrid(w, grid)
+	return grid.Render(w)
 }
 
 func RenderVertical(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
@@ -198,6 +183,23 @@ type layoutNode struct {
 	Children []*layoutNode
 }
 
+func (n *layoutNode) Get(padding int) []byte {
+	var (
+		value = []byte(n.Value)
+		size  = len(value)
+	)
+	if padding > 0 {
+		size += 2 * padding
+		tmp := make([]byte, size)
+		for i := range tmp {
+			tmp[i] = ' '
+		}
+		copy(tmp[padding:], value)
+		value = tmp
+	}
+	return value
+}
+
 const (
 	DefaultVerticalGapSize   = 2
 	DefaultHorizontalGapSize = 5
@@ -211,7 +213,7 @@ const (
 	// horizontalBarUnicode = '\u02015'
 )
 
-func prepareConnector(width int) []byte {
+func makeConnector(width int) []byte {
 	connect := make([]byte, width+1)
 	for i := range connect {
 		connect[i] = horizontalBarAscii
@@ -222,14 +224,45 @@ func prepareConnector(width int) []byte {
 	return connect
 }
 
-func prepareGrid(width, height int, border bool) [][]byte {
+type canvas struct {
+	Width  int
+	Height int
+	cells  [][]byte
+}
+
+func (c *canvas) GetByte(x, y int) byte {
+	return c.cells[y][x]
+}
+
+func (c *canvas) PutByte(x, y int, char byte) {
+	c.cells[y][x] = char
+}
+
+func (c *canvas) Put(x, y int, chars []byte) {
+	copy(c.cells[y][x:], chars)
+}
+
+func (c *canvas) Render(w io.Writer) error {
+	ws := bufio.NewWriter(w)
+	defer ws.Flush()
+	for i := range c.cells {
+		_, err := ws.Write(c.cells[i])
+		if err != nil {
+			return err
+		}
+		ws.WriteByte('\n')
+	}
+	return nil
+}
+
+func makeCanvas(width, height int, border bool) *canvas {
 	if border {
 		width += 2
 		height += 2
 	}
 
 	var (
-		grid  = make([][]byte, height)
+		cells  = make([][]byte, height)
 		blank = make([]byte, width)
 	)
 	for i := range blank {
@@ -239,33 +272,25 @@ func prepareGrid(width, height int, border bool) [][]byte {
 		blank[0] = verticalBarAscii
 		blank[width-1] = verticalBarAscii
 	}
-	for i := range grid {
-		grid[i] = make([]byte, width)
+	for i := range cells {
+		cells[i] = make([]byte, width)
 		if border && (i == 0 || i == height-1) {
-			for j := range grid[i] {
-				grid[i][j] = horizontalBarAscii
+			for j := range cells[i] {
+				cells[i][j] = horizontalBarAscii
 				if j == 0 || j == width-1 {
-					grid[i][j] = connectBarAscii
+					cells[i][j] = connectBarAscii
 				}
 			}
 		} else {
-			copy(grid[i], blank)
+			copy(cells[i], blank)
 		}
 	}
-	return grid
-}
-
-func renderGrid(w io.Writer, grid [][]byte) error {
-	ws := bufio.NewWriter(w)
-	defer ws.Flush()
-	for i := range grid {
-		_, err := ws.Write(grid[i])
-		if err != nil {
-			return err
-		}
-		ws.WriteByte('\n')
+	c := &canvas{
+		cells: cells,
+		Width: width,
+		Height: height,
 	}
-	return nil
+	return c
 }
 
 type layoutMaker struct {
@@ -330,4 +355,15 @@ func (m *layoutMaker) makeLayout(node *Node, depth int) []*layoutNode {
 	}
 	m.maxDepth = max(depth, m.maxDepth)
 	return append(all, &sub)
+}
+
+func getOffsetX(align Alignment, width, size int) int {
+	switch align {
+	case AlignLeft:
+		return 0
+	case AlignRight:
+		return width - size
+	default:
+		return (width - size) / 2
+	}
 }
