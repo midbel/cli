@@ -8,10 +8,10 @@ import (
 	"text/tabwriter"
 )
 
-type Align int
+type Alignment int
 
 const (
-	AlignLeft Align = iota
+	AlignLeft Alignment = iota
 	AlignCenter
 	AlignRight
 )
@@ -28,26 +28,26 @@ type Renderer interface {
 
 type TableRenderer struct {
 	out   io.Writer
-	align map[int]Align
+	align map[int]Alignment
 
 	WithLineNumbers bool
-	WithUnderline bool
-	Separator rune
+	WithUnderline   bool
+	Separator       rune
 }
 
 func NewTableRenderer(w io.Writer) *TableRenderer {
 	return &TableRenderer{
-		out:   w,
-		align: make(map[int]Align),
+		out:       w,
+		align:     make(map[int]Alignment),
 		Separator: ' ',
 	}
 }
 
-func (r *TableRenderer) SetAlignment(col int, align Align) {
+func (r *TableRenderer) SetAlignment(col int, align Alignment) {
 	r.align[col] = align
 }
 
-func (r *TableRenderer) alignmentFor(col int, str string) Align {
+func (r *TableRenderer) alignmentFor(col int, str string) Alignment {
 	a, ok := r.align[col]
 	if ok {
 		return a

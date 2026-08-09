@@ -46,12 +46,12 @@ func (e SuggestionError) Error() string {
 }
 
 type Command struct {
-	Name      string
-	Alias     []string
-	Summary   string
-	Help      string
-	Usage     string
-	Default   bool
+	Name    string
+	Alias   []string
+	Summary string
+	Help    string
+	Usage   string
+	Default bool
 	Handler
 }
 
@@ -241,7 +241,6 @@ func (t *CommandTrie) suggest(name string, others []string) error {
 		Others: distance.Levenshtein(name, others),
 	}
 }
-
 
 func printCommands(nodes map[string]*CommandNode) {
 	if len(nodes) == 0 {
