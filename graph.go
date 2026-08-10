@@ -22,28 +22,28 @@ func HorizontalTree(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			n := len(x.Value) + (2 * (opts.Padding + opts.HorizontalGap))
 			opts.Width = max(opts.Width, n)
 		}
-		opts.Width = opts.Width * maker.HorizontalDepth()
+		opts.Width = opts.Width * maker.Depth()
 	} else {
-		opts.Width += (2 * opts.HorizontalGap) * maker.HorizontalDepth()
+		opts.Width += (2 * opts.HorizontalGap) * maker.Depth()
 	}
 	if opts.Height == 0 {
-		opts.Height = maker.VerticalDepth() * opts.VerticalGap
+		opts.Height = maker.Spacing() * opts.VerticalGap
 	}
 
 	var (
-		sWidth  = (opts.Width / maker.HorizontalDepth())
-		sHeight = (opts.Height / maker.VerticalDepth())
+		sWidth  = (opts.Width / maker.Depth())
+		sHeight = (opts.Height / maker.Spacing())
 		vOffset = sHeight / 2
 	)
-	if w := sWidth * maker.HorizontalDepth(); w != opts.Width {
+	if w := sWidth * maker.Depth(); w != opts.Width {
 		opts.Width = w
 	}
-	if h := sHeight * maker.VerticalDepth(); h != opts.Height {
+	if h := sHeight * maker.Spacing(); h != opts.Height {
 		opts.Height = h
 	}
 	for _, x := range layout {
-		x.X = ((x.X * opts.Width) / maker.HorizontalDepth()) + opts.HorizontalGap
-		x.Y = (x.Y * opts.Height) / maker.VerticalDepth()
+		x.X = ((x.X * opts.Width) / maker.Depth()) + opts.HorizontalGap
+		x.Y = (x.Y * opts.Height) / maker.Spacing()
 	}
 
 	grid := makeCanvas(opts.Width, opts.Height, opts.Border)
@@ -323,11 +323,11 @@ func (m *layoutMaker) Make(node *Node) []*layoutNode {
 	return m.makeLayout(node, 0)
 }
 
-func (m *layoutMaker) VerticalDepth() int {
+func (m *layoutMaker) Spacing() int {
 	return m.nextLeafPosition
 }
 
-func (m *layoutMaker) HorizontalDepth() int {
+func (m *layoutMaker) Depth() int {
 	return m.maxDepth + 1
 }
 
