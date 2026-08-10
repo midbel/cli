@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
+func HorizontalTree(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	if opts == nil {
 		opts = defaultTreeRenderOptions.clone()
 	}
@@ -50,20 +50,16 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	// draw horizontal connectors
 	for _, x := range layout {
 		var (
-			connect = makeConnector(sWidth)
-//			offset = getOffsetX(opts.Align, sWidth-(2*opts.HorizontalGap), len(x.Value)+(2*opts.Padding))
+			size = sWidth
 			start = x.X-opts.HorizontalGap+bWidth
 		)
-		if len(x.Children) == 1 {
-			connect[len(connect)-1] = horizontalBarAscii
-		}
 		if x.Leaf() {
-			connect = connect[:sWidth-len(x.Value)-2*opts.Padding-opts.HorizontalGap]
+			size -= len(x.Value)+(2*opts.Padding)+opts.HorizontalGap
 		} else if x.Root() {
-			connect = connect[opts.HorizontalGap:]
+			size -= opts.HorizontalGap
 			start += opts.HorizontalGap
 		}
-		grid.Put(start, x.Y+bWidth+vOffset, connect)
+		grid.DrawHLine(start, x.Y+bWidth+vOffset, size, len(x.Children) != 1)
 	}
 	// draw vertical connectors
 	for _, x := range layout {
@@ -71,13 +67,12 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 			continue
 		}
 		for i := 0; i < len(x.Children)-1; i++ {
-			for j := x.Children[i].Y + vOffset + bWidth; j < x.Children[i+1].Y+vOffset+bWidth; j++ {
-				at := x.X + bWidth + sWidth - opts.HorizontalGap
-				if grid.GetByte(at, j) == connectBarAscii {
-					continue
-				}
-				grid.PutByte(at, j, verticalBarAscii)
-			}
+			var (
+				start = x.Children[i].Y + vOffset + bWidth
+				length = x.Children[i+1].Y + vOffset + bWidth - start
+				at = x.X + bWidth + sWidth - opts.HorizontalGap
+			)
+			grid.DrawVLine(at, start, length)
 		}
 	}
 	// draw values
@@ -93,14 +88,14 @@ func RenderHorizontal(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	return grid.Render(w)
 }
 
-func RenderVertical(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
+func VerticalTree(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	if opts == nil {
 		opts = defaultTreeRenderOptions.clone()
 	}
 	return nil
 }
 
-func RenderCompact(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
+func CompactTree(w io.Writer, tree *Tree, opts *TreeRenderOptions) error {
 	if opts == nil {
 		opts = defaultTreeRenderOptions.clone()
 	}
@@ -220,21 +215,31 @@ const (
 	// horizontalBarUnicode = '\u02015'
 )
 
-func makeConnector(width int) []byte {
-	connect := make([]byte, width+1)
-	for i := range connect {
-		connect[i] = horizontalBarAscii
-		if i == 0 || i == len(connect)-1 {
-			connect[i] = connectBarAscii
-		}
-	}
-	return connect
-}
-
 type canvas struct {
 	Width  int
 	Height int
 	cells  [][]byte
+}
+
+func (c *canvas) DrawHLine(x, y, length int, final bool) {
+	tmp := make([]byte, length+1)
+	for i := range tmp {
+		tmp[i] = horizontalBarAscii
+		if i == 0 || (i == length && final) {
+			tmp[i] = connectBarAscii
+		}
+	}
+	c.Put(x, y, tmp)
+}
+
+func (c *canvas) DrawVLine(x, y, length int) {
+	for i := 0; i < length; i++ {
+		at := y+i
+		if c.GetByte(x, at) == connectBarAscii {
+			continue
+		}
+		c.PutByte(x, at, verticalBarAscii)
+	}
 }
 
 func (c *canvas) GetByte(x, y int) byte {
